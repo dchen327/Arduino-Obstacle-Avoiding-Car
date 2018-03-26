@@ -66,7 +66,7 @@ void wait() {
 
 	}
 	if (!running) { // Button has just been pressed
-		delay(3000); // time to move finger away
+		delay(1000); // time to move finger away
 		running = true;
 		servo.write(180);
 		delay(200);
@@ -137,7 +137,7 @@ int distanceAngle(int a) {
 	// returns distance when the servo is turned at angle a
 	// a > 90: left, a < 90: right, a = 90: straight
 	servo.write(a);
-	delay(100);
+	delay(100); // speed 120ms / 60 degrees, so minimum 90ms here for 45 degrees
 	return sonar.ping_cm();
 }
 
@@ -187,7 +187,8 @@ void avoid() {
 		spinLeft(1000);
 	}
 	else {
-		forward(1000, 150, 150);
+		forward(0, 120, 120);
+		return; // Exit loop() function and don't stop motors
 	}
 	stop();
 }

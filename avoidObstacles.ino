@@ -4,6 +4,7 @@ Avoids obstacles found by ultrasonic sensor on a servo.
 */
 
 #include <Servo.h>
+#include <NewPing.h>
 
 // motor control pins
 
@@ -27,6 +28,8 @@ const int servoPin = 8;
 
 Servo servo; // servo object
 
+NewPing sonar(trig, echo); // ultrasonic sensor
+
 bool running = false; // variable used to wait for button press
 int distance[5]; // _\|/_ 0 - 4
 int servoAngles[5] = {180, 135, 90, 45, 10};
@@ -43,15 +46,10 @@ void setup() {
 	pinMode(enA, OUTPUT);
 	pinMode(enB, OUTPUT);
 
-	pinMode(trig, OUTPUT);
-	pinMode(echo, INPUT);
-
 	pinMode(button, INPUT_PULLUP);
 
 	servo.attach(servoPin);
-	servo.write(90); // Start in the middle
-	
-	resetPWM();
+	servo.write(90); // Start in the middle so robot looks good
 
 	// Serial.begin(9600); // Debugging
 }
@@ -70,6 +68,8 @@ void wait() {
 	if (!running) { // Button has just been pressed
 		delay(3000); // time to move finger away
 		running = true;
+		servo.write(180);
+		delay(200);
 	}
 }
 
@@ -133,26 +133,12 @@ void resetPWM() {
 	analogWrite(enB, 255);
 }
 
-int getDistance() {
-	// Returns the distance detected by the ultrasonic sensor in centimeters.
-	// returns -1 if nothing detected
-	digitalWrite(trig, LOW);
-	delayMicroseconds(2);
-	digitalWrite(trig, HIGH);
-	delayMicroseconds(10);
-	digitalWrite(trig, LOW);
-	delayMicroseconds(2);
-	int duration = pulseIn(echo, HIGH);
-	int d = duration / 29 / 2; // 29.15 microseconds / cm
-	return d;
-}
-
 int distanceAngle(int a) {
 	// returns distance when the servo is turned at angle a
 	// a > 90: left, a < 90: right, a = 90: straight
 	servo.write(a);
-	delay(200);
-	return getDistance();
+	delay(100);
+	return sonar.ping_cm();
 }
 
 void setDistanceArray() {
@@ -160,12 +146,18 @@ void setDistanceArray() {
 	if (currentPos == 0) {
 		for (int p = 0; p <= 4; p++) {
 			distance[p] = distanceAngle(servoAngles[p]);
+			if (distance[p] == 0) { // ping_cm returns 0 when object is > 500 cm
+				distance[p] = 1000;
+			}
 		}
 		currentPos = 1;
 	}
 	else {
 		for (int p = 4; p >= 0; p--) {
 			distance[p] = distanceAngle(servoAngles[p]);
+			if (distance[p] == 0) {
+				distance[p] = 1000;
+			}
 		}
 		currentPos = 0;
 	}
@@ -180,10 +172,10 @@ void avoid() {
 			backward(1000, 255, 100); // backward right
 		}
 	}
-	else if (distance[0] < 20) { // something close left
+	else if (distance[0] < 15) { // something close left
 		forward(1000, 255, 100);
 	}
-	else if (distance[4] < 20) { // something close right
+	else if (distance[4] < 15) { // something close right
 		forward(1000, 100, 255);
 	}
 	else if (distance[1] < 20) { // left diagonal
@@ -195,7 +187,7 @@ void avoid() {
 		spinLeft(1000);
 	}
 	else {
-		forward(1000, 120, 120);
+		forward(1000, 150, 150);
 	}
 	stop();
 }

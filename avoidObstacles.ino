@@ -35,6 +35,11 @@ int distance[5]; // _\|/_ 0 - 4
 int servoAngles[5] = {180, 135, 90, 45, 10};
 int currentPos = 0; // 0 for left, 1 for right
 
+// Minimum distance for car to keep driving in the same direction
+int minForward = 30;
+int minDiagonal = 25;
+int minSide = 20;
+
 void forward(int time, int left=255, int right=255);
 void backward(int time, int left=255, int right=255);
 
@@ -123,8 +128,8 @@ void stop() {
 	digitalWrite(in2, LOW);
 	digitalWrite(in3, LOW);
 	digitalWrite(in4, LOW);
-	// analogWrite(enA, 0);
-	// analogWrite(enB, 0);
+	analogWrite(enA, 0);
+	analogWrite(enB, 0);
 }
 
 void resetPWM() {
@@ -164,27 +169,19 @@ void setDistanceArray() {
 }
 
 void avoid() {
-	if (distance[2] < 30) { // need to go backwards
-		if (distance[0] <= distance[4]) {
-			backward(1000, 100, 255); // backward left
+	if (distance[2] < minForward) { // need to go backwards
+		if (currentPos == 0) {
+			spinLeft(random(300, 1700)); // spin randomly
 		}
 		else {
-			backward(1000, 255, 100); // backward right
+			spinRight(random(300, 1700));
 		}
 	}
-	else if (distance[0] < 15) { // something close left
-		forward(1000, 255, 100);
+	else if (distance[1] < minDiagonal || distance[0] < minSide) { // left diagonal
+		spinRight(random(500, 1500));
 	}
-	else if (distance[4] < 15) { // something close right
-		forward(1000, 100, 255);
-	}
-	else if (distance[1] < 20) { // left diagonal
-		// back left then forward right
-		spinRight(1000);
-	}
-	else if (distance[3] < 20) { // right diagonal
-		// back right then forward left
-		spinLeft(1000);
+	else if (distance[3] < minDiagonal || distance[4] < minSide) { // right diagonal
+		spinLeft(random(500, 1500));
 	}
 	else {
 		forward(0, 120, 120);
